@@ -1,0 +1,9 @@
+third_party/
+build/
+*.o
+tests/connect_test
+tests/move_test
+tests/joint_test
+a0509_menu/a0509_menu
+gripper/gripper_test
+gripper/gripper_scan
