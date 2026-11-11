@@ -62,3 +62,14 @@ DRFL만으로도 `movel`, `movejx`, `movec`, `movesj`, `movesx`, `moveb`, `ikin`
 
 관절은 거의 그대로인데 TCP Z가 284 → 448 mm로 바뀐 적이 있음 → TP의 TCP(툴) 설정 변경으로 추정.
 `movel` 등 좌표 기반 모션 전에 TP에서 TCP 설정을 확인하세요.
+
+## 11. GUI MoveL: RPY ↔ ZYZ (미검증)
+
+- 두산 posx의 자세는 **ZYZ 오일러** `R = Rz(A)·Ry(B)·Rz(C)` [deg]. GUI 입력은 **RPY** `R = Rz(yaw)·Ry(pitch)·Rx(roll)`.
+- 툴이 아래를 보는 일반 작업 자세는 **B = 180°로 ZYZ 특이 자세**입니다. 이때는 A−C만 의미가 있어 A, C 분할이 임의이므로
+  목표 계산 시 현재 A를 유지합니다 (TP 표시값과 가깝게). RPY로는 Roll ≈ ±180°, Pitch ≈ 0°.
+- 상대 이동도 컨트롤러의 상대 모드(`MOVE_MODE_RELATIVE`)를 쓰지 않고, 모니터링 TCP로 목표를 직접 계산해
+  `amovel(..., MOVE_MODE_ABSOLUTE, MOVE_REFERENCE_BASE)`로 보냅니다 (`get_current_posx()`가 2.8에서 멈추기 때문).
+- 연결 시 모니터링의 `_tTask._fRotationMatrix`와 `ZYZ(A,B,C)`를 비교해 로그에 남깁니다.
+  "TCP 자세 규약 확인"이 나오면 규약이 맞는 것이고, "[주의]"가 나오면 회전 MoveL을 작은 값으로 먼저 확인하세요.
+- 변환 단위 테스트: `a0509_gui/build/pose_math_test` (scipy `ZYZ` / `xyz` 정의와 1e-14 이내 일치 확인함).

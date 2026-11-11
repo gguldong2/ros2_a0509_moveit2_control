@@ -20,7 +20,12 @@ set(DRFL_LIB_DIR "${DRFL_ROOT}/library/Linux/64bits/amd64/22.04")
 
 find_package(Qt5 REQUIRED COMPONENTS Widgets)
 
-add_executable(a0509_gui main.cpp)
+# Offline unit test for the MoveL pose math (RPY <-> ZYZ, relative targets). No robot needed.
+add_executable(pose_math_test pose_math_test.cpp)
+enable_testing()
+add_test(NAME pose_math_test COMMAND pose_math_test)
+
+add_executable(a0509_gui main.cpp pose_math.h)
 target_compile_definitions(a0509_gui PRIVATE DRCF_VERSION=${DRCF_VERSION} QT_NO_KEYWORDS)
 target_include_directories(a0509_gui PRIVATE ${DRFL_ROOT}/include)
 target_link_libraries(a0509_gui PRIVATE

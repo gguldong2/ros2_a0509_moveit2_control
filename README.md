@@ -24,7 +24,8 @@ Ubuntu 22.04 PC에서 테스트 프로그램, CLI 조그 메뉴, Qt GUI, Robotiq
 | `tests/move_test.cpp` | 제어권 → 자동 Servo ON → J6 +5° 왕복 | ✅ 실기 확인 |
 | `tests/joint_test.cpp` | J1~J6를 하나씩 +5° 왕복 (관절마다 Enter 확인, 2°/s) | ✅ 실기 확인 |
 | `a0509_menu/a0509_menu.cpp` | CLI 조그 메뉴 (1 연결 → 2 제어권 → 3 준비 → 관절 조작) | ✅ 실기 확인 |
-| `a0509_gui/` | Qt5 조그 GUI (CMake) | ✅ 실기 확인 |
+| `a0509_gui/` | Qt5 조그 GUI (CMake) — 관절 조그 | ✅ 실기 확인 |
+| `a0509_gui/` (MoveL 패널) | X/Y/Z + Roll/Pitch/Yaw 직선 이동 (절대 / 상대(base) / 상대(tool)) | ⚠️ 실기 미검증 (오프라인 테스트만 통과) |
 | `gripper/gripper_test.cpp` | Robotiq 2F-85 (플랜지 RS-485, Modbus RTU) 활성화/열기/닫기 | ⚠️ 미검증 (그리퍼 응답 없음 조사 중) |
 | `gripper/gripper_scan.cpp` | 그리퍼 통신 진단 (port/baud/slave 스캔, 상태 읽기만) | ⚠️ 미검증 |
 
@@ -82,8 +83,28 @@ scripts/build_all.sh 2         # 전체 빌드 (컨트롤러 3.x면 3)
 ```
 
 - [연결] → TP 승인(또는 "강제 제어권 요청" 체크) → 자동 Servo ON → J1~J6 [−]/[+]
-- **정지 버튼 / Esc / Space** → `MoveStop(QUICK)` (모든 버튼이 포커스를 받지 않아 Space가 이동 버튼을 누르지 않음)
-- 비상정지·보호정지, 제어권 상실, 연결 끊김, 워치독, 관절 피드백 끊김 시 자동 정지
+- **정지 버튼 / Esc / Space** → `MoveStop(QUICK)` (모든 버튼이 포커스를 받지 않아 Space가 이동 버튼을 누르지 않음.
+  입력칸에 커서가 있어도 Esc / Space는 항상 정지로 동작)
+- 비상정지·보호정지, 제어권 상실, 연결 끊김, 워치독, 관절(TCP) 피드백 끊김 시 자동 정지
+
+#### MoveL (직선 이동, 오른쪽 패널)
+
+| 입력 | 단위 | 설명 |
+|---|---|---|
+| X / Y / Z | mm | base 좌표계 TCP 위치 |
+| Roll (Rx) / Pitch (Ry) / Yaw (Rz) | ° | RPY, `R = Rz(yaw)·Ry(pitch)·Rx(roll)` (고정축 X→Y→Z, ROS rpy와 동일) |
+| 속도 v / 회전 | mm/s, °/s | `amovel` vel[0], vel[1] (기본 50 mm/s, 15 °/s) |
+| 가속 a / 회전 | mm/s², °/s² | `amovel` acc[0], acc[1] (기본 100 mm/s², 30 °/s²) |
+
+- **절대**: 입력값이 목표 자세 · **상대(base)**: base 축 방향으로 이동 / TCP 위치를 고정한 채 base 축 기준 회전 ·
+  **상대(tool)**: 툴 축 기준 이동/회전 (예: 툴이 아래를 볼 때 Z +10 → 10 mm 하강)
+- [현재값 불러오기] → 현재 TCP를 채우고 [절대]로 전환 → 일부만 고쳐서 [MoveL 실행]하는 방식을 권장
+- [0으로] → 입력 0 (절대였으면 상대(base)로 전환). 기본 모드는 상대(base) + 0이라 그냥 눌러도 움직이지 않음
+- 100 mm 또는 30°보다 큰 이동은 확인 창, 입력이 덜 끝난 칸(`-` 등)이 있으면 실행 거부, MoveL 입력칸은 마우스 휠로 바뀌지 않음
+- TP와 컨트롤러는 자세를 **ZYZ 오일러 (A, B, C)** 로 표시합니다. GUI는 RPY를 입력받아 현재 TCP 기준으로 목표를 계산한 뒤
+  `amovel(posx, ABS, BASE)`로 보냅니다. 상태 줄에 RPY와 TP 표시값(ZYZ)을 함께 보여 줍니다.
+- 처음에는 **짧은 상대 이동(5~10 mm)**과 낮은 속도로 방향을 확인하세요. TP의 TCP(툴) 설정이 바뀌면 같은 관절 자세에서도 TCP 값이 달라집니다.
+- 변환 계산은 로봇 없이 `a0509_gui/build/pose_math_test`로 검사합니다 (`scripts/build_all.sh`가 빌드 후 자동 실행).
 
 ### 그리퍼 (Robotiq 2F-85, 미검증)
 
